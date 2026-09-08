@@ -1,12 +1,11 @@
 import { FieldApi } from '@tanstack/form-core'
 import {
   createComponent,
-  createComputed,
-  createSignal,
-  onCleanup,
-  onMount,
+  createMemo,
+  createRenderEffect,
+  onSettled,
 } from 'solid-js'
-import { useSelector } from '@tanstack/solid-store'
+import { useSelector } from './useSelector'
 import type {
   DeepKeys,
   DeepValue,
@@ -17,11 +16,13 @@ import type {
   FormValidateOrFn,
 } from '@tanstack/form-core'
 
-import type { Accessor, JSX, JSXElement } from 'solid-js'
+import type { Accessor } from 'solid-js'
+import type { JSX } from '@solidjs/web'
 import type {
   CreateFieldOptions,
   CreateFieldOptionsBound,
   FieldOptionsMode,
+  JSXElement,
 } from './types'
 
 interface SolidFieldApi<
@@ -167,7 +168,6 @@ function makeFieldReactive<
     TFormOnServer,
     TParentSubmitMeta
   > {
-  const [field, setField] = createSignal(fieldApi, { equals: false })
   // Subscribe to the pieces of state that should trigger a re-render of the
   // field. For array mode, we only track the length of the array value to
   // avoid re-renders when child properties change. Meta is tracked piece by
@@ -200,19 +200,22 @@ function makeFieldReactive<
     fieldApi.store,
     (state) => state.meta.isValidating,
   )
-  // Run before initial render
-  createComputed(() => {
-    // Read all reactive sources to track them as dependencies
-    reactiveStateValue()
-    reactiveMetaIsTouched()
-    reactiveMetaIsBlurred()
-    reactiveMetaIsDirty()
-    reactiveMetaErrorMap()
-    reactiveMetaErrorSourceMap()
-    reactiveMetaIsValidating()
-    setField(fieldApi)
-  })
-  return field
+  // Re-emit the field api whenever any tracked slice changes. `equals: false`
+  // makes every recompute notify, even though the api identity is stable.
+  return createMemo(
+    () => {
+      // Read all reactive sources to track them as dependencies
+      reactiveStateValue()
+      reactiveMetaIsTouched()
+      reactiveMetaIsBlurred()
+      reactiveMetaIsDirty()
+      reactiveMetaErrorMap()
+      reactiveMetaErrorSourceMap()
+      reactiveMetaIsValidating()
+      return fieldApi
+    },
+    { equals: false },
+  )
 }
 
 export function createField<
@@ -282,25 +285,29 @@ export function createField<
 
   let mounted = false
   // Instantiates field meta and removes it when unrendered
-  onMount(() => {
+  onSettled(() => {
     const cleanupFn = api.mount()
     mounted = true
-    onCleanup(() => {
+    return () => {
       cleanupFn()
       mounted = false
-    })
+    }
   })
 
   /**
    * fieldApi.update should not have any side effects. Think of it like a `useRef`
    * that we need to keep updated every render with the most up-to-date information.
    *
-   * createComputed to make sure this effect runs before render effects
+   * createRenderEffect to make sure the update happens before render effects,
+   * with the write in the effect phase (Solid 2 forbids writes in owned scopes).
    */
-  createComputed(() => {
-    if (!mounted) return
-    api.update(opts())
-  })
+  createRenderEffect(
+    () => opts(),
+    (nextOptions) => {
+      if (!mounted) return
+      api.update(nextOptions)
+    },
+  )
 
   return makeFieldReactive<
     TParentData,

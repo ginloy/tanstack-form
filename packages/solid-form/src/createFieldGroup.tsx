@@ -1,7 +1,8 @@
 import { FieldGroupApi, functionalUpdate } from '@tanstack/form-core'
-import { useSelector } from '@tanstack/solid-store'
-import { onCleanup, onMount } from 'solid-js'
-import type { Component, JSX, ParentProps } from 'solid-js'
+import { onSettled } from 'solid-js'
+import { useSelector } from './useSelector'
+import type { Component, ParentProps } from 'solid-js'
+import type { JSX } from '@solidjs/web'
 import type {
   DeepKeysOfType,
   FieldGroupState,
@@ -207,13 +208,13 @@ export function createFieldGroup<
   }
 
   let mounted = false
-  onMount(() => {
+  onSettled(() => {
     const cleanupFn = api.mount()
     mounted = true
-    onCleanup(() => {
+    return () => {
       cleanupFn()
       mounted = false
-    })
+    }
   })
 
   return Object.assign(extendedApi, {

@@ -1,12 +1,11 @@
-import { FormGroupApi, functionalUpdate } from '@tanstack/form-core'
+import { FormGroupApi } from '@tanstack/form-core'
 import {
   createComponent,
-  createComputed,
-  createSignal,
-  onCleanup,
-  onMount,
+  createMemo,
+  createRenderEffect,
+  onSettled,
 } from 'solid-js'
-import { useSelector } from '@tanstack/solid-store'
+import { useSelector } from './useSelector'
 import type {
   DeepKeys,
   DeepValue,
@@ -17,7 +16,9 @@ import type {
   FormGroupValidateOrFn,
   FormValidateOrFn,
 } from '@tanstack/form-core'
-import type { Accessor, JSX, JSXElement } from 'solid-js'
+import type { Accessor } from 'solid-js'
+import type { JSX } from '@solidjs/web'
+import type { JSXElement } from './types'
 
 // ugly way to trick solid into triggering updates for changes on the formGroupApi
 function makeFormGroupReactive<
@@ -112,16 +113,17 @@ function makeFormGroupReactive<
   TFormOnServer,
   TParentSubmitMeta
 > {
-  const [group, setGroup] = createSignal(formGroupApi, { equals: false })
-  // Handle shallow comparison to make sure that Derived doesn't create a new setGroup call every time
-  const store = useSelector(formGroupApi.store, (store) => store)
-  // Run before initial render
-  createComputed(() => {
-    // Use the store to track dependencies
-    store()
-    setGroup(formGroupApi)
-  })
-  return group
+  const store = useSelector(formGroupApi.store, (state) => state)
+  // Re-emit the group api whenever the store changes. `equals: false` makes
+  // every recompute notify, even though the api identity is stable.
+  return createMemo(
+    () => {
+      // Use the store to track dependencies
+      store()
+      return formGroupApi
+    },
+    { equals: false },
+  )
 }
 
 export function createFormGroup<
@@ -197,25 +199,29 @@ export function createFormGroup<
 
   let mounted = false
   // Instantiates form group meta and removes it when unrendered
-  onMount(() => {
+  onSettled(() => {
     const cleanupFn = api.mount()
     mounted = true
-    onCleanup(() => {
+    return () => {
       cleanupFn()
       mounted = false
-    })
+    }
   })
 
   /**
    * formGroupApi.update should not have any side effects. Think of it like a `useRef`
    * that we need to keep updated every render with the most up-to-date information.
    *
-   * createComputed to make sure this effect runs before render effects
+   * createRenderEffect to make sure the update happens before render effects,
+   * with the write in the effect phase (Solid 2 forbids writes in owned scopes).
    */
-  createComputed(() => {
-    if (!mounted) return
-    api.update(opts())
-  })
+  createRenderEffect(
+    () => opts(),
+    (nextOptions) => {
+      if (!mounted) return
+      api.update(nextOptions)
+    },
+  )
 
   return makeFormGroupReactive<
     TParentData,

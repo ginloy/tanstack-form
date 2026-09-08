@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@solidjs/testing-library'
 import { userEvent } from '@testing-library/user-event'
-import { Index, Show, createSignal, onCleanup } from 'solid-js'
+import { For, Show, createSignal, onCleanup } from 'solid-js'
 import { createForm } from '../src/index'
 import { sleep } from './utils'
 import type { FormValidationErrorMap } from '../src/index'
@@ -502,7 +502,7 @@ describe('createForm', () => {
         <>
           <form.Field name="foo" mode="array">
             {(arrayField) => (
-              <Index each={arrayField().state.value}>
+              <For keyed={false} each={arrayField().state.value}>
                 {(_, i) => (
                   <form.Field name={`foo[${i}].name`}>
                     {(field) => {
@@ -512,7 +512,7 @@ describe('createForm', () => {
                     }}
                   </form.Field>
                 )}
-              </Index>
+              </For>
             )}
           </form.Field>
           <button
@@ -560,7 +560,7 @@ describe('createForm', () => {
                     Add Item
                   </button>
                   <div>
-                    <Index each={fieldArray().state.value}>
+                    <For keyed={false} each={fieldArray().state.value}>
                       {(_, index) => (
                         <form.Field name={`items[${index}]`}>
                           {(field) => (
@@ -573,7 +573,7 @@ describe('createForm', () => {
                           )}
                         </form.Field>
                       )}
-                    </Index>
+                    </For>
                   </div>
                 </div>
               )}
@@ -612,7 +612,7 @@ describe('createForm', () => {
               // This unit test provides different result based on
               // using For vs. Index. Unit test both
               // once that's fixed.
-              <Index each={arrayField().state.value}>
+              <For keyed={false} each={arrayField().state.value}>
                 {(_, i) => (
                   <form.Field name={`foo[${i}].name`}>
                     {(field) => {
@@ -622,7 +622,7 @@ describe('createForm', () => {
                     }}
                   </form.Field>
                 )}
-              </Index>
+              </For>
             )}
           </form.Field>
           <button
@@ -640,5 +640,29 @@ describe('createForm', () => {
 
     const target = getByTestId('removeField')
     await user.click(target)
+  })
+  it('applies reactive option changes to the form api', async () => {
+    const [name, setName] = createSignal('a')
+
+    function Comp() {
+      const form = createForm(() => ({
+        defaultValues: { firstName: name() },
+      }))
+
+      return (
+        <form.Subscribe selector={(state) => state.values.firstName}>
+          {(firstName) => <p data-testid="firstName">{firstName()}</p>}
+        </form.Subscribe>
+      )
+    }
+
+    const { getByTestId } = render(() => <Comp />)
+    expect(getByTestId('firstName').textContent).toBe('a')
+
+    setName('b')
+
+    await waitFor(() =>
+      expect(getByTestId('firstName').textContent).toBe('b'),
+    )
   })
 })

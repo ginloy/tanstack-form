@@ -56,15 +56,19 @@
     "src"
   ],
   "dependencies": {
-    "@tanstack/form-core": "workspace:*",
-    "@tanstack/solid-store": "^0.11.0"
+    "@solidjs/web": "^2.0.0-rc.4",
+    "@tanstack/form-core": "workspace:*"
   },
   "devDependencies": {
-    "solid-js": "^1.9.9",
-    "vite": "^7.2.2",
-    "vite-plugin-solid": "^2.11.8"
+    "@solidjs/vite-plugin": "^3.0.0-next.36",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@vitest/expect": "^5.0.0",
+    "@vitest/coverage-istanbul": "^5.0.0",
+    "solid-js": "^2.0.0-rc.4",
+    "vite": "^8.2.1",
+    "vitest": "^5.0.0"
   },
   "peerDependencies": {
-    "solid-js": ">=1.9.9"
+    "solid-js": ">=2.0.0-rc.4"
   }
 }

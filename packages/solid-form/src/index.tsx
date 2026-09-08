@@ -1,6 +1,7 @@
 export * from '@tanstack/form-core'
 
-export { useSelector, useStore } from '@tanstack/solid-store'
+export { useSelector } from './useSelector'
+export { useStore } from './useStore'
 
 export * from './createField'
 export * from './createForm'

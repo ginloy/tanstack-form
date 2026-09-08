@@ -2,8 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "preserve",
-    "jsxImportSource": "solid-js",
+    "jsxImportSource": "@solidjs/web",
     "moduleResolution": "Bundler",
+    "types": ["vitest/globals", "@testing-library/jest-dom/vitest"],
     "paths": {
       "@tanstack/form-core": ["../form-core/src"]
     }

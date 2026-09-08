@@ -1,3 +1,4 @@
+import type { JSX } from '@solidjs/web';
 import type {
   DeepKeys,
   DeepValue,
@@ -8,6 +9,8 @@ import type {
   FormAsyncValidateOrFn,
   FormValidateOrFn,
 } from '@tanstack/form-core'
+
+export type JSXElement = JSX.Element
 
 /**
  * @private

@@ -1,8 +1,8 @@
 import {
   createComponent,
   createContext,
-  mergeProps,
-  splitProps,
+  merge,
+  omit,
   useContext,
 } from 'solid-js'
 import { createFieldGroup } from './createFieldGroup'
@@ -22,9 +22,9 @@ import type {
   Accessor,
   Component,
   Context,
-  JSXElement,
   ParentProps,
 } from 'solid-js'
+import type { JSXElement } from './types'
 import type { FieldComponent } from './createField'
 import type { AppFieldExtendedSolidFieldGroupApi } from './createFieldGroup'
 import type { SolidFormExtendedApi } from './createForm'
@@ -351,26 +351,26 @@ export function createFormHook<
 
     const AppForm = ((formProps) => {
       return (
-        <opts.formContext.Provider value={form}>
+        <opts.formContext value={form}>
           {formProps.children}
-        </opts.formContext.Provider>
+        </opts.formContext>
       )
     }) as Component<ParentProps>
 
     const AppField = ((_props) => {
-      const [childProps, fieldProps] = splitProps(_props, ['children'])
+      const fieldProps = omit(_props, 'children')
       return (
         <form.Field {...fieldProps}>
           {(field) => (
-            <opts.fieldContext.Provider value={field}>
+            <opts.fieldContext value={field}>
               {createComponent(
                 () =>
-                  childProps.children(
+                  _props.children(
                     Object.assign(field, opts.fieldComponents),
                   ),
                 {},
               )}
-            </opts.fieldContext.Provider>
+            </opts.fieldContext>
           )}
         </form.Field>
       )
@@ -472,7 +472,7 @@ export function createFormHook<
     return (innerProps) =>
       createComponent(
         render as Component<any>,
-        mergeProps(props ?? {}, innerProps),
+        merge(props ?? {}, innerProps),
       )
   }
 
@@ -560,7 +560,7 @@ export function createFormHook<
       const fieldGroupApi = createFieldGroup(() => fieldGroupProps)
       return createComponent(
         render as Component<any>,
-        mergeProps(props ?? {}, innerProps, { group: fieldGroupApi as any }),
+        merge(props ?? {}, innerProps, { group: fieldGroupApi as any }),
       )
     }
   }
